@@ -4,8 +4,14 @@ from openai import OpenAI
 
 def build_tool(description: str, tool_name: str) -> str:
     """Uses the configured local model to generate and save a new Python tool to the tools directory."""
-    base_url = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434/v1")
-    api_key = os.getenv("LOCAL_API_KEY", "ollama")
+    backend_type = os.getenv("BACKEND", "ollama").lower().strip()
+    if backend_type == "local":
+        base_url = os.getenv("LOCAL_BASE_URL", "http://localhost:1234/v1")
+        api_key = os.getenv("LOCAL_API_KEY", "local")
+    else:
+        base_url = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434/v1")
+        api_key = os.getenv("LOCAL_API_KEY", "ollama")
+
     model = os.getenv("AGENT_MODEL", "qwen2.5:7b")
 
     client = OpenAI(base_url=base_url, api_key=api_key)
