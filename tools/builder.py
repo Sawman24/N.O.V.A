@@ -12,7 +12,7 @@ def build_tool(description: str, tool_name: str) -> str:
         base_url = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434/v1")
         api_key = os.getenv("LOCAL_API_KEY", "ollama")
 
-    model = os.getenv("AGENT_MODEL", "qwen2.5:7b")
+    model = os.getenv("BUILDER_MODEL") or os.getenv("AGENT_MODEL", "qwen2.5:7b")
 
     client = OpenAI(base_url=base_url, api_key=api_key)
 
