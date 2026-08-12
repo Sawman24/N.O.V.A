@@ -32,6 +32,20 @@ def get_current_username(credentials: HTTPBasicCredentials = Depends(security)):
 
 agent = NovaAgent()
 
+# Env vars editable from the web UI (whitelist only — never expose secrets like WEB_PASSWORD here)
+EDITABLE_ENV = [
+    "AGENT_MODEL",
+    "BACKEND",
+    "OLLAMA_BASE_URL",
+    "LOCAL_BASE_URL",
+    "LOCAL_API_KEY",
+    "EMAIL_ADDRESS",
+    "EMAIL_APP_PASSWORD",
+    "IMAP_SERVER",
+    "SMTP_SERVER",
+    "HEADLESS_MODE",
+]
+
 # --- Background email monitor (only runs if EMAIL_ADDRESS is set) ---
 async def email_monitor_task():
     if not os.getenv("EMAIL_ADDRESS"):
@@ -78,6 +92,9 @@ class ConfigRequest(BaseModel):
 
 class ModelRequest(BaseModel):
     model_name: str
+
+class EnvRequest(BaseModel):
+    vars: dict
 
 # --- Endpoints ---
 
@@ -138,6 +155,30 @@ async def save_profile(req: ProfileRequest, username: str = Depends(get_current_
     filename = f"{req.name.strip().replace(' ', '_').lower()}.txt"
     with open(os.path.join("profiles", filename), "w") as f:
         f.write(req.content)
+    agent.reload_profiles()  # Apply immediately — no restart needed
+    return {"status": "success"}
+
+
+@app.get("/api/env")
+async def get_env(username: str = Depends(get_current_username)):
+    """Return current values of all editable env vars."""
+    return {k: os.getenv(k, "") for k in EDITABLE_ENV}
+
+@app.post("/api/env")
+async def save_env(req: EnvRequest, username: str = Depends(get_current_username)):
+    """Update env vars live and try to persist them to .env."""
+    for key, value in req.vars.items():
+        if key in EDITABLE_ENV:
+            os.environ[key] = value
+
+    # Try to write .env so changes survive a restart
+    try:
+        lines = [f"{k}={os.getenv(k, '')}" for k in EDITABLE_ENV]
+        with open(".env", "w") as f:
+            f.write("\n".join(lines) + "\n")
+    except Exception as e:
+        print(f"[Nova] Could not write .env: {e}")
+
     return {"status": "success"}
 
 @app.get("/api/models")

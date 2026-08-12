@@ -191,6 +191,16 @@ h3 { font-weight: 500; color: #fff; margin-top: 2rem; }
     line-height: 1.5;
 }
 
+code {
+    background: rgba(108, 92, 231, 0.12);
+    border: 1px solid rgba(108, 92, 231, 0.2);
+    border-radius: 4px;
+    padding: 0.1rem 0.4rem;
+    font-size: 0.85rem;
+    font-family: monospace;
+    color: var(--primary-hover);
+}
+
 .muted-sm { color: var(--muted); font-size: 0.82rem; }
 
 .label-hint { color: var(--muted); font-size: 0.8rem; }

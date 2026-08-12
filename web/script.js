@@ -202,6 +202,48 @@ async function downloadModel() {
     }
 }
 
+// ── Environment ──────────────────────────────────────────────────────────────
+
+const SENSITIVE_KEYS = ['EMAIL_APP_PASSWORD', 'LOCAL_API_KEY'];
+
+async function loadEnv() {
+    try {
+        const res = await fetch('/api/env');
+        if (!res.ok) return;
+        const data = await res.json();
+        const container = document.getElementById('env-fields');
+        container.innerHTML = Object.entries(data).map(([key, value]) => {
+            const isSensitive = SENSITIVE_KEYS.includes(key);
+            return `
+                <div class="form-group">
+                    <label>${key}</label>
+                    <input
+                        type="${isSensitive ? 'password' : 'text'}"
+                        id="env_${key}"
+                        value="${escapeHtml(value)}"
+                        placeholder="${isSensitive ? '(hidden)' : ''}"
+                        autocomplete="off"
+                    >
+                </div>`;
+        }).join('');
+    } catch (e) {}
+}
+
+async function saveEnv() {
+    const fields = document.getElementById('env-fields').querySelectorAll('input');
+    const vars = {};
+    fields.forEach(input => {
+        const key = input.id.replace('env_', '');
+        vars[key] = input.value;
+    });
+    const res = await fetch('/api/env', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ vars })
+    });
+    alert(res.ok ? 'Environment saved! Changes are live.' : 'Failed to save environment.');
+}
+
 // ── Profiles ──────────────────────────────────────────────────────────────────
 
 async function loadProfiles() {
@@ -244,5 +286,6 @@ window.onload = () => {
     loadConfig();
     loadProfiles();
     loadInstalledModels();
+    loadEnv();
     document.getElementById('chat-input').focus();
 };

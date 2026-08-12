@@ -18,6 +18,7 @@
             <ul>
                 <li class="active" onclick="switchTab('chat', this)">Chat</li>
                 <li onclick="switchTab('settings', this)">Settings</li>
+                <li onclick="switchTab('environment', this)">Environment</li>
                 <li onclick="switchTab('profiles', this)">Profiles</li>
             </ul>
         </nav>
@@ -65,6 +66,14 @@
                 </div>
 
                 <button onclick="saveConfig()" class="btn-primary">Save Settings</button>
+            </div>
+
+            <!-- Environment Tab -->
+            <div id="environment" class="tab-content">
+                <h2>Environment</h2>
+                <p class="muted">Changes apply immediately to the running process. Nova will also attempt to write these to <code>.env</code> for persistence across restarts.</p>
+                <div id="env-fields"></div>
+                <button onclick="saveEnv()" class="btn-primary">Save Environment</button>
             </div>
 
             <!-- Profiles Tab -->

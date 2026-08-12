@@ -11,8 +11,10 @@ class NovaAgent:
     def __init__(self):
         self.backend = get_backend()
         self.registry = ToolRegistry()
+        self.messages = [{"role": "system", "content": self._build_system_prompt()}]
 
-        # Load all user profiles from profiles/ directory
+    def _build_system_prompt(self) -> str:
+        """Build the system prompt, injecting all profiles from the profiles/ directory."""
         profile_text = ""
         try:
             if os.path.exists("profiles"):
@@ -24,18 +26,18 @@ class NovaAgent:
         except Exception as e:
             print(f"[Nova] Error loading profiles: {e}")
 
-        self.messages = [
-            {
-                "role": "system",
-                "content": (
-                    "You are Nova, a local agentic AI assistant. "
-                    "Be concise, direct, and helpful. "
-                    "You have access to tools for shell commands, web search, email, and building new tools. "
-                    "Use tools proactively when they would help answer the user's request."
-                    + profile_text
-                )
-            }
-        ]
+        return (
+            "You are Nova, a local agentic AI assistant. "
+            "Be concise, direct, and helpful. "
+            "You have access to tools for shell commands, web search, email, and building new tools. "
+            "Use tools proactively when they would help answer the user's request."
+            + profile_text
+        )
+
+    def reload_profiles(self):
+        """Reload profiles and update the system message in place — no restart needed."""
+        self.messages[0] = {"role": "system", "content": self._build_system_prompt()}
+        print("[Nova] Profiles reloaded.")
 
     def chat(self, user_input: str) -> str:
         self.messages.append({"role": "user", "content": user_input})
