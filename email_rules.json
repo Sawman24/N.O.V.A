@@ -1,0 +1,21 @@
+{
+  "auto_reply_enabled": true,
+  "require_approval_keywords": [
+    "payment",
+    "invoice",
+    "contract",
+    "legal",
+    "salary",
+    "job offer",
+    "price",
+    "quote",
+    "urgent",
+    "bank",
+    "wire transfer",
+    "password",
+    "credential",
+    "security"
+  ],
+  "whitelist_senders": [],
+  "blacklist_senders": []
+}

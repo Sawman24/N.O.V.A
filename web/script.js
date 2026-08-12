@@ -204,7 +204,7 @@ async function downloadModel() {
 
 // ── Environment ──────────────────────────────────────────────────────────────
 
-const SENSITIVE_KEYS = ['EMAIL_APP_PASSWORD', 'LOCAL_API_KEY'];
+const SENSITIVE_KEYS = ['EMAIL_APP_PASSWORD', 'LOCAL_API_KEY', 'GOOGLE_CLIENT_SECRET', 'GOOGLE_REFRESH_TOKEN'];
 
 async function loadEnv() {
     try {
