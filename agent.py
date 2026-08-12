@@ -14,7 +14,10 @@ class NovaAgent:
         self.sessions = {}
 
     def _build_system_prompt(self) -> str:
-        """Build the system prompt, injecting all profiles from the profiles/ directory."""
+        """Build the system prompt, injecting loaded tools and all profiles from the profiles/ directory."""
+        self.registry.load_tools()
+        tool_list = ", ".join(sorted(self.registry.tools.keys())) if self.registry.tools else "none"
+
         profile_text = ""
         try:
             if os.path.exists("profiles"):
@@ -29,7 +32,7 @@ class NovaAgent:
         return (
             "You are Nova, a local agentic AI assistant. "
             "Be concise, direct, and helpful. "
-            "You have access to tools for web searching, web scraping/reading URLs, local & remote PC shell execution, file & document management, email monitoring & triage, calendar management, and building new tools.\n\n"
+            f"You have access to the following tools: {tool_list}.\n\n"
             "WEB & SCRAPING PROTOCOL:\n"
             "- Use search_web to search for topics on DuckDuckGo.\n"
             "- Use fetch_webpage_content to fetch and read the full text content of any website URL or article.\n\n"
