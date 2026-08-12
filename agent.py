@@ -11,7 +11,7 @@ class NovaAgent:
     def __init__(self):
         self.backend = get_backend()
         self.registry = ToolRegistry()
-        self.messages = [{"role": "system", "content": self._build_system_prompt()}]
+        self.sessions = {}
 
     def _build_system_prompt(self) -> str:
         """Build the system prompt, injecting all profiles from the profiles/ directory."""
@@ -40,20 +40,30 @@ class NovaAgent:
             + profile_text
         )
 
+    def get_session(self, session_id: str) -> list:
+        """Get or initialize message history for a given session ID."""
+        if session_id not in self.sessions:
+            self.sessions[session_id] = [{"role": "system", "content": self._build_system_prompt()}]
+        return self.sessions[session_id]
+
     def reload_profiles(self):
-        """Reload profiles and update the system message in place — no restart needed."""
-        self.messages[0] = {"role": "system", "content": self._build_system_prompt()}
+        """Reload profiles and update system messages across all active sessions — no restart needed."""
+        system_prompt = self._build_system_prompt()
+        for session_id, messages in self.sessions.items():
+            if messages and messages[0].get("role") == "system":
+                messages[0]["content"] = system_prompt
         print("[Nova] Profiles reloaded.")
 
-    def chat(self, user_input: str) -> str:
-        self.messages.append({"role": "user", "content": user_input})
+    def chat(self, user_input: str, session_id: str = "default") -> str:
+        messages = self.get_session(session_id)
+        messages.append({"role": "user", "content": user_input})
 
         while True:
             self.registry.load_tools()
             tools = self.registry.get_tool_schemas()
 
-            msg = self.backend.chat(self.messages, tools)
-            self.messages.append(msg)
+            msg = self.backend.chat(messages, tools)
+            messages.append(msg)
 
             if msg.tool_calls:
                 for tool_call in msg.tool_calls:
@@ -73,7 +83,7 @@ class NovaAgent:
                     else:
                         result = f"Tool '{func_name}' not found."
 
-                    self.messages.append({
+                    messages.append({
                         "role": "tool",
                         "name": func_name,
                         "content": str(result),

@@ -21,7 +21,9 @@ def execute_command(command: str) -> str:
             if choice.lower() != 'y':
                 return "Execution aborted by user."
                 
-        result = subprocess.run(command, shell=True, capture_output=True, text=True)
+        result = subprocess.run(command, shell=True, capture_output=True, text=True, timeout=60)
         return f"STDOUT:\n{result.stdout}\nSTDERR:\n{result.stderr}"
+    except subprocess.TimeoutExpired:
+        return f"Error executing command: Command '{command}' timed out after 60 seconds."
     except Exception as e:
         return f"Error executing command: {e}"

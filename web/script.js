@@ -47,6 +47,15 @@ function handleChatKey(e) {
     }
 }
 
+function getSessionId() {
+    let sid = localStorage.getItem('nova_session_id');
+    if (!sid) {
+        sid = 'session_' + Math.random().toString(36).substring(2, 11);
+        localStorage.setItem('nova_session_id', sid);
+    }
+    return sid;
+}
+
 async function sendMessage() {
     const input = document.getElementById('chat-input');
     const btn = document.getElementById('send-btn');
@@ -62,7 +71,7 @@ async function sendMessage() {
         const res = await fetch('/api/chat', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ message })
+            body: JSON.stringify({ message, session_id: getSessionId() })
         });
         const data = await res.json();
         appendMessage('agent', res.ok ? data.response : `Error: ${data.detail}`);
