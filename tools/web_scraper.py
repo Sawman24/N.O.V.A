@@ -60,3 +60,9 @@ def fetch_webpage_content(url: str, max_chars: int = 4000) -> str:
 
     except Exception as e:
         return f"Error fetching webpage '{url}': {e}"
+
+
+def web_scraper(url: str, max_chars: int = 4000) -> str:
+    """Scrapes and extracts full text content from a web page URL.
+    Use this tool to read full webpage articles, documentation, or site text."""
+    return fetch_webpage_content(url, max_chars=max_chars)
