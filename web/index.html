@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nova — Local AI</title>
+    <meta name="description" content="Nova: a self-hosted local agentic AI platform.">
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="glass-panel main-container">
+        <nav class="sidebar">
+            <div class="brand">
+                <h1 class="glow-text">Nova</h1>
+                <div class="backend-badge" id="backend-badge">Connecting...</div>
+            </div>
+            <ul>
+                <li class="active" onclick="switchTab('chat', this)">Chat</li>
+                <li onclick="switchTab('settings', this)">Settings</li>
+                <li onclick="switchTab('profiles', this)">Profiles</li>
+            </ul>
+        </nav>
+
+        <div class="content">
+            <!-- Chat Tab -->
+            <div id="chat" class="tab-content active">
+                <div class="chat-box" id="chat-box">
+                    <div class="chat-msg msg-ai">
+                        <strong>Nova</strong><br>Hey, I'm ready. What do you need?
+                    </div>
+                </div>
+                <div class="chat-input-area">
+                    <input type="text" id="chat-input" placeholder="Message Nova..." onkeydown="handleChatKey(event)" autocomplete="off">
+                    <button onclick="sendMessage()" id="send-btn">Send</button>
+                </div>
+            </div>
+
+            <!-- Settings Tab -->
+            <div id="settings" class="tab-content">
+                <h2>Settings</h2>
+
+                <div class="form-group">
+                    <label>Autonomous Mode <span class="label-hint">(no human confirmation for shell commands)</span></label>
+                    <input type="checkbox" id="autonomous_mode">
+                </div>
+
+                <div class="form-group">
+                    <label>Installed Models <span class="label-hint">(click to select)</span></label>
+                    <div class="installed-models" id="installed-models">
+                        <span class="muted-sm">Loading...</span>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Pull a Model <span class="label-hint">(Ollama only — e.g. qwen2.5:7b, llama3.2:3b)</span></label>
+                    <div class="input-group">
+                        <input type="text" id="agent_model" placeholder="model:tag">
+                        <button onclick="downloadModel()" id="download-btn">Pull</button>
+                    </div>
+                    <div class="pull-progress" id="pull-progress" style="display:none">
+                        <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
+                        <span class="muted-sm" id="pull-status-text">Starting...</span>
+                    </div>
+                </div>
+
+                <button onclick="saveConfig()" class="btn-primary">Save Settings</button>
+            </div>
+
+            <!-- Profiles Tab -->
+            <div id="profiles" class="tab-content">
+                <h2>Profiles</h2>
+                <p class="muted">Profiles are injected into Nova's system prompt at startup. Add context about yourself, your communication style, or any persistent instructions.</p>
+                <div class="profile-list" id="profile-list"></div>
+                <h3>Add / Edit Profile</h3>
+                <div class="form-group">
+                    <label>Profile Name</label>
+                    <input type="text" id="profile_name" placeholder="e.g. user, work">
+                </div>
+                <div class="form-group">
+                    <label>Profile Content</label>
+                    <textarea id="profile_content" rows="10" placeholder="Describe yourself, your preferences, communication style, email rules, etc."></textarea>
+                </div>
+                <button onclick="saveProfile()" class="btn-primary">Save Profile</button>
+            </div>
+        </div>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>

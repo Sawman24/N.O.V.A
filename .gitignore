@@ -1,0 +1,9 @@
+.env
+__pycache__/
+*.pyc
+*.pyo
+venv/
+.DS_Store
+processed_emails.json
+backends/__pycache__/
+tools/__pycache__/

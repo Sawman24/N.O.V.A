@@ -1,0 +1,24 @@
+# Nova User Profile Template
+# Fill in any sections relevant to you.
+# The more context you provide, the better Nova personalizes its responses.
+# Rename this file (e.g. user.txt) and fill it in to activate your profile.
+
+## About You
+- Name:
+- Timezone:
+- Working hours:
+
+## Communication Style
+- Tone: (e.g. casual, professional, direct)
+- Brevity: (e.g. keep responses under 3 sentences)
+- Things to avoid: (e.g. no emojis, no filler phrases)
+- Email sign-off:
+
+## Context & Interests
+-
+
+## Email Rules (if email tools are enabled)
+- Auto-reply to:
+- Never auto-reply to:
+- Always flag emails from:
+- Ignore and mark read:
