@@ -119,6 +119,7 @@ body {
 .tab-content.active { display: flex; }
 
 #settings.tab-content.active,
+#environment.tab-content.active,
 #profiles.tab-content.active {
     display: block;
     overflow-y: auto;
@@ -327,3 +328,42 @@ button:disabled { opacity: 0.45; cursor: not-allowed; }
     background: rgba(108, 92, 231, 0.08);
     border-color: rgba(108, 92, 231, 0.3);
 }
+
+/* ── Environment Sections & Layout ── */
+.env-section {
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid var(--glass-border);
+    border-radius: 12px;
+    padding: 1.25rem 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.env-section-title {
+    font-size: 1.05rem;
+    font-weight: 500;
+    color: #fff;
+    margin: 0 0 1rem 0;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    border-bottom: 1px solid var(--glass-border);
+    padding-bottom: 0.6rem;
+}
+
+.env-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1rem 1.25rem;
+}
+
+.env-actions {
+    position: sticky;
+    bottom: 0;
+    background: rgba(13, 15, 18, 0.95);
+    backdrop-filter: blur(8px);
+    padding: 1rem 0;
+    border-top: 1px solid var(--glass-border);
+    margin-top: 1rem;
+    z-index: 10;
+}
+

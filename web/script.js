@@ -206,26 +206,86 @@ async function downloadModel() {
 
 const SENSITIVE_KEYS = ['EMAIL_APP_PASSWORD', 'LOCAL_API_KEY', 'GOOGLE_CLIENT_SECRET', 'GOOGLE_REFRESH_TOKEN'];
 
+const ENV_CATEGORIES = [
+    {
+        title: '🤖 Model & Backend',
+        keys: ['BACKEND', 'AGENT_MODEL', 'OLLAMA_BASE_URL', 'LOCAL_BASE_URL', 'LOCAL_API_KEY']
+    },
+    {
+        title: '📧 Email Integration',
+        keys: ['EMAIL_ADDRESS', 'EMAIL_APP_PASSWORD', 'IMAP_SERVER', 'SMTP_SERVER']
+    },
+    {
+        title: '📅 Google Calendar',
+        keys: ['GOOGLE_CALENDAR_ID', 'GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_SECRET', 'GOOGLE_REFRESH_TOKEN', 'GOOGLE_SERVICE_ACCOUNT_JSON']
+    },
+    {
+        title: '⚙️ General Settings',
+        keys: ['HEADLESS_MODE']
+    }
+];
+
 async function loadEnv() {
     try {
         const res = await fetch('/api/env');
         if (!res.ok) return;
         const data = await res.json();
         const container = document.getElementById('env-fields');
-        container.innerHTML = Object.entries(data).map(([key, value]) => {
-            const isSensitive = SENSITIVE_KEYS.includes(key);
-            return `
-                <div class="form-group">
-                    <label>${key}</label>
-                    <input
-                        type="${isSensitive ? 'password' : 'text'}"
-                        id="env_${key}"
-                        value="${escapeHtml(value)}"
-                        placeholder="${isSensitive ? '(hidden)' : ''}"
-                        autocomplete="off"
-                    >
-                </div>`;
-        }).join('');
+
+        const renderedKeys = new Set();
+        let html = '';
+
+        ENV_CATEGORIES.forEach(cat => {
+            const catKeys = cat.keys.filter(k => k in data);
+            if (catKeys.length === 0) return;
+
+            html += `<div class="env-section">
+                <h3 class="env-section-title">${cat.title}</h3>
+                <div class="env-grid">`;
+
+            catKeys.forEach(key => {
+                renderedKeys.add(key);
+                const isSensitive = SENSITIVE_KEYS.includes(key);
+                html += `
+                    <div class="form-group">
+                        <label>${key}</label>
+                        <input
+                            type="${isSensitive ? 'password' : 'text'}"
+                            id="env_${key}"
+                            value="${escapeHtml(data[key] || '')}"
+                            placeholder="${isSensitive ? '(hidden)' : ''}"
+                            autocomplete="off"
+                        >
+                    </div>`;
+            });
+
+            html += `</div></div>`;
+        });
+
+        // Render any uncategorized keys
+        const remainingKeys = Object.keys(data).filter(k => !renderedKeys.has(k));
+        if (remainingKeys.length > 0) {
+            html += `<div class="env-section">
+                <h3 class="env-section-title">🔧 Other Variables</h3>
+                <div class="env-grid">`;
+            remainingKeys.forEach(key => {
+                const isSensitive = SENSITIVE_KEYS.includes(key);
+                html += `
+                    <div class="form-group">
+                        <label>${key}</label>
+                        <input
+                            type="${isSensitive ? 'password' : 'text'}"
+                            id="env_${key}"
+                            value="${escapeHtml(data[key] || '')}"
+                            placeholder="${isSensitive ? '(hidden)' : ''}"
+                            autocomplete="off"
+                        >
+                    </div>`;
+            });
+            html += `</div></div>`;
+        }
+
+        container.innerHTML = html;
     } catch (e) {}
 }
 
