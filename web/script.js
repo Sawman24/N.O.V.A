@@ -97,7 +97,7 @@ async function saveConfig() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data)
     });
-    alert(res.ok ? 'Settings saved! Restart Nova to apply model changes.' : 'Failed to save settings.');
+    alert(res.ok ? 'Settings saved! Model switched immediately.' : 'Failed to save settings.');
 }
 
 // ── Model management ──────────────────────────────────────────────────────────

@@ -115,6 +115,8 @@ async def get_config(username: str = Depends(get_current_username)):
 async def save_config(req: ConfigRequest, username: str = Depends(get_current_username)):
     with open("config.json", "w") as f:
         json.dump({"require_human_confirmation": not req.autonomous_mode}, f)
+    # Update the running process so the model switches immediately — no restart needed
+    os.environ["AGENT_MODEL"] = req.agent_model
     return {"status": "success"}
 
 @app.get("/api/profiles")
