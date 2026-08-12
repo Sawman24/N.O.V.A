@@ -30,10 +30,8 @@ services:
     ports:
       - "8000:8000"
     volumes:
-      - ./.env:/app/.env
-      - ./config.json:/app/config.json
-      - ./profiles:/app/profiles
-      - ./tools:/app/tools
+      - nova_profiles:/app/profiles
+      - nova_tools:/app/tools
     environment:
       - OLLAMA_BASE_URL=http://ollama:11434/v1
       - BACKEND=ollama
@@ -44,3 +42,5 @@ services:
 
 volumes:
   ollama_data:
+  nova_profiles:
+  nova_tools:
