@@ -218,7 +218,7 @@ const SENSITIVE_KEYS = ['EMAIL_APP_PASSWORD', 'LOCAL_API_KEY', 'GOOGLE_CLIENT_SE
 const ENV_CATEGORIES = [
     {
         title: '🤖 Model & Backend',
-        keys: ['BACKEND', 'AGENT_MODEL', 'OLLAMA_BASE_URL', 'LOCAL_BASE_URL', 'LOCAL_API_KEY']
+        keys: ['BACKEND', 'AGENT_MODEL', 'BUILDER_MODEL', 'OLLAMA_BASE_URL', 'LOCAL_BASE_URL', 'LOCAL_API_KEY']
     },
     {
         title: '📧 Email Integration',

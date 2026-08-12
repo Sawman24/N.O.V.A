@@ -8,6 +8,7 @@ router = APIRouter(prefix="/api", tags=["config"])
 
 EDITABLE_ENV = [
     "AGENT_MODEL",
+    "BUILDER_MODEL",
     "BACKEND",
     "OLLAMA_BASE_URL",
     "LOCAL_BASE_URL",
