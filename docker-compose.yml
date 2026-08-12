@@ -8,6 +8,8 @@ services:
     volumes:
       - ollama_data:/root/.ollama
     restart: always
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
     deploy:
       resources:
         reservations:
@@ -16,11 +18,11 @@ services:
               count: all
               capabilities: [gpu]
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
-      interval: 30s
+      test: ["CMD", "ollama", "list"]
+      interval: 10s
       timeout: 10s
-      start_period: 20s
-      retries: 3
+      start_period: 60s
+      retries: 5
 
   nova:
     build: .
