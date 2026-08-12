@@ -17,11 +17,6 @@ EDITABLE_ENV = [
     "EMAIL_APP_PASSWORD",
     "IMAP_SERVER",
     "SMTP_SERVER",
-    "GOOGLE_CALENDAR_ID",
-    "GOOGLE_CLIENT_ID",
-    "GOOGLE_CLIENT_SECRET",
-    "GOOGLE_REFRESH_TOKEN",
-    "GOOGLE_SERVICE_ACCOUNT_JSON",
     "HEADLESS_MODE",
 ]
 
@@ -71,10 +66,25 @@ async def save_env(req: EnvRequest, username: str = Depends(get_current_username
             os.environ[key] = value
 
     try:
-        lines = [f"{k}={os.getenv(k, '')}" for k in EDITABLE_ENV]
+        # Read existing .env to preserve non-editable vars (e.g. WEB_USERNAME, WEB_PASSWORD)
+        existing = {}
+        if os.path.exists(".env"):
+            with open(".env", "r") as f:
+                for line in f:
+                    line = line.strip()
+                    if line and not line.startswith("#") and "=" in line:
+                        k, v = line.split("=", 1)
+                        existing[k] = v
+
+        # Update editable vars with current env values
+        for k in EDITABLE_ENV:
+            existing[k] = os.getenv(k, "")
+
+        lines = [f"{k}={v}" for k, v in existing.items()]
         with open(".env", "w") as f:
             f.write("\n".join(lines) + "\n")
     except Exception as e:
         print(f"[Nova] Could not write .env: {e}")
 
     return {"status": "success"}
+

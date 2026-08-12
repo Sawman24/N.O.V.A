@@ -213,7 +213,7 @@ async function downloadModel() {
 
 // ── Environment ──────────────────────────────────────────────────────────────
 
-const SENSITIVE_KEYS = ['EMAIL_APP_PASSWORD', 'LOCAL_API_KEY', 'GOOGLE_CLIENT_SECRET', 'GOOGLE_REFRESH_TOKEN'];
+const SENSITIVE_KEYS = ['EMAIL_APP_PASSWORD', 'LOCAL_API_KEY'];
 
 const ENV_CATEGORIES = [
     {
@@ -223,10 +223,6 @@ const ENV_CATEGORIES = [
     {
         title: '📧 Email Integration',
         keys: ['EMAIL_ADDRESS', 'EMAIL_APP_PASSWORD', 'IMAP_SERVER', 'SMTP_SERVER']
-    },
-    {
-        title: '📅 Google Calendar',
-        keys: ['GOOGLE_CALENDAR_ID', 'GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_SECRET', 'GOOGLE_REFRESH_TOKEN', 'GOOGLE_SERVICE_ACCOUNT_JSON']
     },
     {
         title: '⚙️ General Settings',
@@ -344,7 +340,7 @@ async function saveProfile() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name, content })
     });
-    alert('Profile saved! Restart Nova for it to take effect.');
+    alert('Profile saved! Changes are active in all sessions.');
     loadProfiles();
 }
 

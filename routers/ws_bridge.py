@@ -32,7 +32,7 @@ class ClientBridgeManager:
             ws = list(self.active_clients.values())[0]
 
         rpc_id = str(uuid.uuid4())[:8]
-        future = asyncio.get_event_loop().create_future()
+        future = asyncio.get_running_loop().create_future()
         self.pending_rpcs[rpc_id] = future
 
         try:
