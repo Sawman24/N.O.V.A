@@ -3,8 +3,10 @@ import uuid
 import asyncio
 from typing import Dict, Any
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
+from nova_logging import get_logger
 
 router = APIRouter(prefix="/ws", tags=["websocket"])
+logger = get_logger("routers.ws_bridge")
 
 
 class ClientBridgeManager:
@@ -15,12 +17,12 @@ class ClientBridgeManager:
     async def connect(self, client_id: str, websocket: WebSocket):
         await websocket.accept()
         self.active_clients[client_id] = websocket
-        print(f"[Nova Bridge] Client '{client_id}' connected.")
+        logger.info(f"Client '{client_id}' connected.")
 
     def disconnect(self, client_id: str):
         if client_id in self.active_clients:
             del self.active_clients[client_id]
-            print(f"[Nova Bridge] Client '{client_id}' disconnected.")
+            logger.info(f"Client '{client_id}' disconnected.")
 
     async def send_rpc(self, client_id: str, action: str, params: Dict[str, Any], timeout: float = 60.0) -> Any:
         if not self.active_clients:
@@ -79,6 +81,6 @@ async def websocket_client_endpoint(websocket: WebSocket, client_id: str = "defa
                 if rpc_id:
                     bridge_manager.handle_response(rpc_id, result, error)
             except Exception as e:
-                print(f"[Nova Bridge] Malformed message from client '{client_id}': {e}")
+                logger.warning(f"Malformed message from client '{client_id}': {e}")
     except WebSocketDisconnect:
         bridge_manager.disconnect(client_id)

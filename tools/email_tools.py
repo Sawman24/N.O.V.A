@@ -20,7 +20,7 @@ def _decode_str(s):
         if isinstance(decoded_string, bytes):
             try:
                 result += decoded_string.decode(charset or 'utf-8')
-            except:
+            except (UnicodeDecodeError, LookupError):
                 result += decoded_string.decode('utf-8', errors='replace')
         else:
             result += str(decoded_string)
@@ -148,12 +148,12 @@ def check_inbox(limit: int = 3) -> str:
                             if part.get_content_type() == "text/plain":
                                 try:
                                     body = part.get_payload(decode=True).decode()
-                                except:
+                                except (UnicodeDecodeError, AttributeError):
                                     pass
                     else:
                         try:
                             body = msg.get_payload(decode=True).decode()
-                        except:
+                        except (UnicodeDecodeError, AttributeError):
                             pass
 
                     triage_result = evaluate_email_triage(sender, subject, body)

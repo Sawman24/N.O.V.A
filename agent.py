@@ -3,8 +3,12 @@ import json
 from tool_registry import ToolRegistry
 from backends import get_backend
 from dotenv import load_dotenv
+from nova_logging import get_logger
+import chat_store
 
 load_dotenv()
+
+logger = get_logger("agent")
 
 
 class NovaAgent:
@@ -27,7 +31,7 @@ class NovaAgent:
                         with open(filepath, "r") as f:
                             profile_text += f"\n\n--- PROFILE: {filename} ---\n{f.read()}"
         except Exception as e:
-            print(f"[Nova] Error loading profiles: {e}")
+            logger.error(f"Error loading profiles: {e}")
 
         return (
             "You are Nova, a local agentic AI assistant. "
@@ -49,8 +53,20 @@ class NovaAgent:
     def get_session(self, session_id: str) -> list:
         """Get or initialize message history for a given session ID."""
         if session_id not in self.sessions:
-            self.sessions[session_id] = [{"role": "system", "content": self._build_system_prompt()}]
+            # Try loading from persistent store
+            stored = chat_store.load_session(session_id)
+            if stored:
+                self.sessions[session_id] = stored
+            else:
+                system_msg = {"role": "system", "content": self._build_system_prompt()}
+                self.sessions[session_id] = [system_msg]
+                chat_store.save_message(session_id, "system", system_msg["content"])
         return self.sessions[session_id]
+
+    def delete_session(self, session_id: str):
+        """Delete a session from memory and persistent store."""
+        self.sessions.pop(session_id, None)
+        chat_store.delete_session(session_id)
 
     def reload_profiles(self):
         """Reload profiles and update system messages across all active sessions — no restart needed."""
@@ -58,11 +74,12 @@ class NovaAgent:
         for session_id, messages in self.sessions.items():
             if messages and messages[0].get("role") == "system":
                 messages[0]["content"] = system_prompt
-        print("[Nova] Profiles reloaded.")
+        logger.info("Profiles reloaded.")
 
     def chat(self, user_input: str, session_id: str = "default") -> str:
         messages = self.get_session(session_id)
         messages.append({"role": "user", "content": user_input})
+        chat_store.save_message(session_id, "user", user_input)
 
         while True:
             self.registry.load_tools()
@@ -72,6 +89,10 @@ class NovaAgent:
             messages.append(msg)
 
             if msg.tool_calls:
+                # Persist assistant message with tool calls
+                tc_data = [{"id": tc.id, "type": "function", "function": {"name": tc.function.name, "arguments": tc.function.arguments}} for tc in msg.tool_calls]
+                chat_store.save_message(session_id, "assistant", msg.content, tool_calls=tc_data)
+
                 for tool_call in msg.tool_calls:
                     func_name = tool_call.function.name
                     try:
@@ -79,7 +100,7 @@ class NovaAgent:
                     except json.JSONDecodeError:
                         args = {}
 
-                    print(f"[Nova] → {func_name}({args})")
+                    logger.info(f"Tool call: {func_name}({args})")
 
                     if func_name in self.registry.tools:
                         try:
@@ -95,5 +116,103 @@ class NovaAgent:
                         "content": str(result),
                         "tool_call_id": tool_call.id
                     })
+                    chat_store.save_message(session_id, "tool", str(result), name=func_name, tool_call_id=tool_call.id)
             else:
+                chat_store.save_message(session_id, "assistant", msg.content)
                 return msg.content or ""
+
+    def chat_stream(self, user_input: str, session_id: str = "default"):
+        """Generator that yields SSE-compatible event dicts for streaming chat."""
+        messages = self.get_session(session_id)
+        messages.append({"role": "user", "content": user_input})
+
+        while True:
+            self.registry.load_tools()
+            tools = self.registry.get_tool_schemas()
+
+            # Accumulate the full response for message history
+            full_content = ""
+            tool_calls_accum = {}  # index -> {id, name, arguments}
+
+            for chunk in self.backend.chat_stream(messages, tools):
+                if not chunk.choices:
+                    continue
+                delta = chunk.choices[0].delta
+
+                # Stream text tokens
+                if delta.content:
+                    full_content += delta.content
+                    yield {"type": "token", "content": delta.content}
+
+                # Accumulate tool call deltas
+                if delta.tool_calls:
+                    for tc_delta in delta.tool_calls:
+                        idx = tc_delta.index
+                        if idx not in tool_calls_accum:
+                            tool_calls_accum[idx] = {
+                                "id": tc_delta.id or "",
+                                "name": tc_delta.function.name or "" if tc_delta.function else "",
+                                "arguments": "",
+                            }
+                        if tc_delta.id:
+                            tool_calls_accum[idx]["id"] = tc_delta.id
+                        if tc_delta.function:
+                            if tc_delta.function.name:
+                                tool_calls_accum[idx]["name"] = tc_delta.function.name
+                            if tc_delta.function.arguments:
+                                tool_calls_accum[idx]["arguments"] += tc_delta.function.arguments
+
+            # If there were tool calls, execute them and loop
+            if tool_calls_accum:
+                # Build a message object for history
+                tool_calls_list = []
+                for idx in sorted(tool_calls_accum.keys()):
+                    tc = tool_calls_accum[idx]
+                    tool_calls_list.append({
+                        "id": tc["id"],
+                        "type": "function",
+                        "function": {
+                            "name": tc["name"],
+                            "arguments": tc["arguments"],
+                        },
+                    })
+
+                messages.append({
+                    "role": "assistant",
+                    "content": full_content or None,
+                    "tool_calls": tool_calls_list,
+                })
+
+                for tc in tool_calls_list:
+                    func_name = tc["function"]["name"]
+                    try:
+                        args = json.loads(tc["function"]["arguments"])
+                    except json.JSONDecodeError:
+                        args = {}
+
+                    logger.info(f"Tool call (stream): {func_name}({args})")
+                    yield {"type": "tool_call", "name": func_name, "args": args}
+
+                    if func_name in self.registry.tools:
+                        try:
+                            result = self.registry.tools[func_name](**args)
+                        except Exception as e:
+                            result = f"Error executing tool '{func_name}': {e}"
+                    else:
+                        result = f"Tool '{func_name}' not found."
+
+                    yield {"type": "tool_result", "name": func_name, "result": str(result)[:500]}
+
+                    messages.append({
+                        "role": "tool",
+                        "name": func_name,
+                        "content": str(result),
+                        "tool_call_id": tc["id"],
+                    })
+                # Loop back to get the model's final response
+                continue
+            else:
+                # No tool calls — done
+                messages.append({"role": "assistant", "content": full_content})
+                yield {"type": "done"}
+                return

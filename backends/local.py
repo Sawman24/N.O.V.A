@@ -1,6 +1,10 @@
 import os
+from typing import Generator
 from openai import OpenAI
 from .base import BaseBackend
+from nova_logging import get_logger
+
+logger = get_logger("backends.local")
 
 
 class LocalBackend(BaseBackend):
@@ -15,7 +19,7 @@ class LocalBackend(BaseBackend):
         api_key = os.getenv("LOCAL_API_KEY", "local")
         self.client = OpenAI(base_url=base_url, api_key=api_key)
         self._default_model = os.getenv("AGENT_MODEL", "local-model")
-        print(f"[Nova] Backend: Local ({base_url}) — default model: {self._default_model}")
+        logger.info(f"Backend: Local ({base_url}) — default model: {self._default_model}")
 
     def chat(self, messages: list, tools: list):
         # Read model fresh each call so switching models needs no restart
@@ -26,6 +30,18 @@ class LocalBackend(BaseBackend):
             tools=tools if tools else None,
         )
         return response.choices[0].message
+
+    def chat_stream(self, messages: list, tools: list) -> Generator:
+        """Stream response chunks from the local server."""
+        model = os.getenv("AGENT_MODEL", self._default_model)
+        stream = self.client.chat.completions.create(
+            model=model,
+            messages=messages,
+            tools=tools if tools else None,
+            stream=True,
+        )
+        for chunk in stream:
+            yield chunk
 
     def get_info(self) -> dict:
         return {"backend": self.NAME, "model": os.getenv("AGENT_MODEL", self._default_model)}
