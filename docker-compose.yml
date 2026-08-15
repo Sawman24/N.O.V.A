@@ -48,6 +48,13 @@ services:
       - IMAP_SERVER=${IMAP_SERVER:-imap.gmail.com}
       - SMTP_SERVER=${SMTP_SERVER:-smtp.gmail.com}
       - HEADLESS_MODE=${HEADLESS_MODE:-true}
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
     depends_on:
       ollama:
         condition: service_healthy
