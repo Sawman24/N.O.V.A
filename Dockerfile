@@ -10,6 +10,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         gcc \
         g++ \
         libstdc++6 \
+        curl \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Python dependencies (cached layer — only rebuilds when requirements.txt changes)
@@ -25,8 +26,8 @@ RUN mkdir -p models
 # Expose the FastAPI port
 EXPOSE 8000
 
-# Health check — used by Docker and docker-compose depends_on
-HEALTHCHECK --interval=30s --timeout=10s --start-period=15s --retries=3 \
-    CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health', timeout=5)" || exit 1
+# Health check — using lightweight curl instead of spawning a heavy python process
+HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
+    CMD curl -f http://localhost:8000/api/health || exit 1
 
 CMD ["uvicorn", "api:app", "--host", "0.0.0.0", "--port", "8000"]
