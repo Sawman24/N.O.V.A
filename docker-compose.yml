@@ -29,10 +29,13 @@ services:
     container_name: nova
     ports:
       - "${PORT:-8080}:8000"
+    env_file:
+      - .env
     volumes:
       - nova_profiles:/app/profiles
       - nova_tools:/app/tools
       - nova_models:/app/models
+      - ./.env:/app/.env
     environment:
       - OLLAMA_BASE_URL=http://ollama:11434/v1
       - BACKEND=${BACKEND:-ollama}
