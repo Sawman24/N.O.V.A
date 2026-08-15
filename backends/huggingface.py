@@ -17,14 +17,6 @@ class HuggingFaceBackend(BaseBackend):
     NAME = "huggingface"
 
     def __init__(self):
-        try:
-            from llama_cpp import Llama
-        except ImportError:
-            raise RuntimeError(
-                "llama-cpp-python is not installed. "
-                "Run: pip install llama-cpp-python"
-            )
-
         model_path = get_config_val("HF_MODEL_FILE", "")
         if not model_path or not os.path.exists(model_path):
             raise RuntimeError(
@@ -32,23 +24,33 @@ class HuggingFaceBackend(BaseBackend):
                 "Download a model first via the Settings → Hugging Face panel."
             )
 
-        n_gpu_layers = get_config_val("N_GPU_LAYERS", 0)
-        n_ctx = get_config_val("N_CTX", 4096)
-
-        logger.info(
-            f"Backend: HuggingFace — loading {model_path} "
-            f"(n_gpu_layers={n_gpu_layers}, n_ctx={n_ctx})"
-        )
-
         self._model_path = model_path
-        self._llm = Llama(
-            model_path=model_path,
-            n_gpu_layers=n_gpu_layers,
-            n_ctx=n_ctx,
-            chat_format="chatml",
-            verbose=False,
-        )
-        logger.info("Model loaded successfully.")
+        self._n_gpu_layers = get_config_val("N_GPU_LAYERS", 0)
+        self._n_ctx = get_config_val("N_CTX", 4096)
+        self._llm = None  # Loaded lazily on first chat request to avoid startup timeouts
+
+    def _get_llm(self):
+        if self._llm is None:
+            try:
+                from llama_cpp import Llama
+            except ImportError:
+                raise RuntimeError(
+                    "llama-cpp-python is not installed. "
+                    "Run: pip install llama-cpp-python"
+                )
+            logger.info(
+                f"Backend: HuggingFace — loading model file: {self._model_path} "
+                f"(n_gpu_layers={self._n_gpu_layers}, n_ctx={self._n_ctx})"
+            )
+            self._llm = Llama(
+                model_path=self._model_path,
+                n_gpu_layers=self._n_gpu_layers,
+                n_ctx=self._n_ctx,
+                chat_format="chatml",
+                verbose=False,
+            )
+            logger.info("Model loaded successfully.")
+        return self._llm
 
     # ── helpers ──────────────────────────────────────────────────────────────
 
@@ -73,7 +75,7 @@ class HuggingFaceBackend(BaseBackend):
         if tool_list:
             kwargs["tools"] = tool_list
 
-        response = self._llm.create_chat_completion(**kwargs)
+        response = self._get_llm().create_chat_completion(**kwargs)
 
         # Return an object that matches the OpenAI message interface expected
         # by agent.py (.content and .tool_calls).
@@ -90,7 +92,7 @@ class HuggingFaceBackend(BaseBackend):
         if tool_list:
             kwargs["tools"] = tool_list
 
-        for chunk in self._llm.create_chat_completion(**kwargs):
+        for chunk in self._get_llm().create_chat_completion(**kwargs):
             yield _LlamaChunk(chunk)
 
     def get_info(self) -> dict:
