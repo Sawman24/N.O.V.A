@@ -1,4 +1,4 @@
-FROM nvidia/cuda:12.1.1-devel-ubuntu22.04
+FROM nvidia/cuda:12.1.1-runtime-ubuntu22.04
 
 # Avoid prompts during package installations
 ENV DEBIAN_FRONTEND=noninteractive
@@ -6,23 +6,27 @@ ENV PIP_BREAK_SYSTEM_PACKAGES=1
 
 WORKDIR /app
 
-# Install default Python 3, pip, and system dependencies
+# Install Python 3.10 (Ubuntu 22.04 default) and pip only — no build tools needed
+# because we install a pre-built llama-cpp-python CUDA wheel below.
 RUN apt-get update && apt-get install -y --no-install-recommends \
         python3 \
         python3-dev \
         python3-pip \
-        cmake \
-        build-essential \
     && rm -rf /var/lib/apt/lists/*
 
-# Configure environment variables to compile llama-cpp-python with CUDA GPU support
-ENV CMAKE_ARGS="-DGGML_CUDA=on"
-ENV FORCE_CMAKE=1
+# Upgrade pip first
+RUN python3 -m pip install --upgrade pip
 
-# Install Python dependencies (ensuring python3 -m pip matches the python3 runtime)
+# Install all Python dependencies EXCEPT llama-cpp-python
 COPY requirements.txt .
-RUN python3 -m pip install --upgrade pip && \
-    python3 -m pip install --no-cache-dir -r requirements.txt
+RUN grep -v "llama-cpp-python" requirements.txt > requirements_base.txt && \
+    python3 -m pip install --no-cache-dir -r requirements_base.txt
+
+# Install llama-cpp-python using an official pre-built CUDA 12.1 wheel.
+# This avoids the lengthy C++ compilation step entirely.
+RUN python3 -m pip install --no-cache-dir \
+    llama-cpp-python \
+    --extra-index-url https://abetlen.github.io/llama-cpp-python/whl/cu121
 
 # Copy application code
 COPY . .
@@ -33,9 +37,8 @@ RUN mkdir -p models
 # Expose the FastAPI port
 EXPOSE 8000
 
-# Health check — optimized to check if the socket port 8000 is open and listening.
-# This succeeds instantly even if the FastAPI event loop is temporarily blocked
-# by heavy GPU inference (generating tokens).
+# Lightweight TCP socket health check — does not spawn a Python process,
+# works even when the model is busy generating tokens.
 HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
     CMD python3 -S -c "import socket; socket.create_connection(('localhost', 8000), timeout=2)" || exit 1
 
