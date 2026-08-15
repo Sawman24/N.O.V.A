@@ -2,12 +2,25 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-# Install dependencies first (cached layer)
+# Install system build dependencies required by llama-cpp-python (C++ extension)
+# and clean up apt caches in the same layer to keep image size down.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        build-essential \
+        cmake \
+        gcc \
+        g++ \
+        libstdc++6 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Python dependencies (cached layer — only rebuilds when requirements.txt changes)
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy application code
 COPY . .
+
+# Create models directory for GGUF storage
+RUN mkdir -p models
 
 # Expose the FastAPI port
 EXPOSE 8000

@@ -4,7 +4,34 @@ set -e
 echo "=== Nova Setup ==="
 echo ""
 
-# Create .env from template if it doesn't exist
+# ── System dependencies (Linux only) ─────────────────────────────────────────
+# llama-cpp-python requires a C++17 compiler and cmake to build its native
+# extension. Install them automatically on Debian/Ubuntu-based systems.
+if [[ "$(uname -s)" == "Linux" ]]; then
+    if command -v apt-get &>/dev/null; then
+        echo "→ Checking build dependencies for llama-cpp-python..."
+        MISSING_PKGS=()
+        command -v gcc   &>/dev/null || MISSING_PKGS+=(gcc)
+        command -v g++   &>/dev/null || MISSING_PKGS+=(g++)
+        command -v cmake &>/dev/null || MISSING_PKGS+=(cmake)
+        command -v make  &>/dev/null || MISSING_PKGS+=(make)
+
+        if [ ${#MISSING_PKGS[@]} -gt 0 ]; then
+            echo "  Installing: ${MISSING_PKGS[*]}"
+            sudo apt-get update -qq
+            sudo apt-get install -y --no-install-recommends \
+                build-essential cmake "${MISSING_PKGS[@]}"
+            echo "✓ Build tools installed"
+        else
+            echo "✓ Build tools already present (gcc, g++, cmake, make)"
+        fi
+    else
+        echo "⚠ Non-apt Linux detected. Ensure gcc, g++, cmake, and make are installed"
+        echo "  before running pip install -r requirements.txt"
+    fi
+fi
+
+# ── .env setup ────────────────────────────────────────────────────────────────
 if [ ! -f .env ]; then
     if [ -f .env.example ]; then
         cp .env.example .env
@@ -18,11 +45,11 @@ else
     echo "✓ .env already exists"
 fi
 
-# Create required directories
-mkdir -p profiles tools
-echo "✓ Directories ready (profiles/, tools/)"
+# ── Required directories ──────────────────────────────────────────────────────
+mkdir -p profiles tools models
+echo "✓ Directories ready (profiles/, tools/, models/)"
 
-# Check for Docker
+# ── Docker vs. manual ────────────────────────────────────────────────────────
 if command -v docker &>/dev/null && command -v docker-compose &>/dev/null; then
     echo "✓ Docker and docker-compose found"
     echo ""
@@ -41,4 +68,9 @@ else
     echo "  Web UI: http://localhost:8000"
 fi
 
+# ── GPU note ─────────────────────────────────────────────────────────────────
+echo ""
+echo "  NOTE: The HuggingFace backend (BACKEND=huggingface) uses llama-cpp-python."
+echo "  For GPU/CUDA acceleration, rebuild with:"
+echo "    CMAKE_ARGS=\"-DGGML_CUDA=on\" pip install llama-cpp-python --force-reinstall"
 echo ""

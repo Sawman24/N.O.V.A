@@ -65,6 +65,40 @@
                     </div>
                 </div>
 
+                <!-- Hugging Face Section -->
+                <div class="hf-section">
+                    <h3 class="hf-section-title">🤗 Hugging Face Models</h3>
+                    <p class="muted">Browse and download GGUF models directly from Hugging Face. After download, set <code>BACKEND=huggingface</code> and <code>HF_MODEL_FILE</code> in the Environment tab.</p>
+
+                    <div class="form-group">
+                        <label>Downloaded GGUF Models <span class="label-hint">(click to select as active model)</span></label>
+                        <div class="installed-models" id="hf-installed-models">
+                            <span class="muted-sm">Loading...</span>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Repository ID <span class="label-hint">(e.g. bartowski/Qwen2.5-7B-Instruct-GGUF)</span></label>
+                        <div class="input-group">
+                            <input type="text" id="hf-repo-id" placeholder="username/repo-name">
+                            <button onclick="browseHFFiles()" id="hf-browse-btn">Browse</button>
+                        </div>
+                    </div>
+
+                    <div class="form-group" id="hf-file-group" style="display:none">
+                        <label>Select GGUF File</label>
+                        <div class="input-group">
+                            <select id="hf-file-select" style="flex:1"></select>
+                            <button onclick="downloadHFModel()" id="hf-download-btn">Download</button>
+                        </div>
+                    </div>
+
+                    <div class="pull-progress" id="hf-pull-progress" style="display:none">
+                        <div class="progress-bar"><div class="progress-fill" id="hf-progress-fill"></div></div>
+                        <span class="muted-sm" id="hf-pull-status-text">Connecting...</span>
+                    </div>
+                </div>
+
                 <button onclick="saveConfig()" class="btn-primary">Save Settings</button>
             </div>
 

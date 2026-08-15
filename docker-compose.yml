@@ -32,9 +32,14 @@ services:
     volumes:
       - nova_profiles:/app/profiles
       - nova_tools:/app/tools
+      - nova_models:/app/models
     environment:
       - OLLAMA_BASE_URL=http://ollama:11434/v1
-      - BACKEND=ollama
+      - BACKEND=${BACKEND:-ollama}
+      - HF_TOKEN=${HF_TOKEN:-}
+      - HF_MODEL_FILE=${HF_MODEL_FILE:-}
+      - N_GPU_LAYERS=${N_GPU_LAYERS:-0}
+      - N_CTX=${N_CTX:-4096}
     depends_on:
       ollama:
         condition: service_healthy
@@ -44,3 +49,4 @@ volumes:
   ollama_data:
   nova_profiles:
   nova_tools:
+  nova_models:

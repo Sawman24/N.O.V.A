@@ -7,3 +7,6 @@ venv/
 processed_emails.json
 backends/__pycache__/
 tools/__pycache__/
+routers/__pycache__/
+models/*.gguf
+models/*.bin

@@ -211,6 +211,151 @@ async function downloadModel() {
     }
 }
 
+// ── Hugging Face model management ────────────────────────────────────────────
+
+async function loadHFModels() {
+    const container = document.getElementById('hf-installed-models');
+    try {
+        const res = await fetch('/api/hf/models');
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!data.models || data.models.length === 0) {
+            container.innerHTML = '<span class="muted-sm">No GGUF models downloaded yet.</span>';
+            return;
+        }
+        container.innerHTML = data.models.map(m =>
+            `<div class="model-chip" onclick="selectHFModel('${m.filename}')" title="Click to activate">
+                <span class="model-name">${m.filename}</span>
+                <span class="model-size">${m.size_gb}GB</span>
+            </div>`
+        ).join('');
+    } catch (e) {
+        container.innerHTML = '<span class="muted-sm">Could not load downloaded models.</span>';
+    }
+}
+
+function selectHFModel(filename) {
+    // Populate HF_MODEL_FILE env field if visible, otherwise show a quick tip
+    const envField = document.getElementById('env_HF_MODEL_FILE');
+    if (envField) {
+        envField.value = `models/${filename}`;
+        envField.closest('.form-group').scrollIntoView({ behavior: 'smooth' });
+    } else {
+        alert(`To activate this model:\n1. Set BACKEND=huggingface in the Environment tab.\n2. Set HF_MODEL_FILE=models/${filename}\n3. Restart Nova.`);
+    }
+}
+
+async function browseHFFiles() {
+    const repoId = document.getElementById('hf-repo-id').value.trim();
+    if (!repoId) return alert('Enter a Hugging Face repository ID (e.g. bartowski/Qwen2.5-7B-Instruct-GGUF).');
+
+    const btn = document.getElementById('hf-browse-btn');
+    btn.disabled = true;
+    btn.textContent = 'Loading...';
+
+    try {
+        const res = await fetch(`/api/hf/files?repo_id=${encodeURIComponent(repoId)}`);
+        const data = await res.json();
+
+        if (!res.ok) {
+            alert(`Error: ${data.detail || 'Could not fetch file list.'}`);
+            return;
+        }
+
+        if (!data.files || data.files.length === 0) {
+            alert('No GGUF files found in this repository.');
+            return;
+        }
+
+        const select = document.getElementById('hf-file-select');
+        select.innerHTML = data.files.map(f => `<option value="${f}">${f}</option>`).join('');
+        document.getElementById('hf-file-group').style.display = 'block';
+    } catch (e) {
+        alert(`Failed to reach server: ${e.message}`);
+    } finally {
+        btn.disabled = false;
+        btn.textContent = 'Browse';
+    }
+}
+
+async function downloadHFModel() {
+    const repoId = document.getElementById('hf-repo-id').value.trim();
+    const filename = document.getElementById('hf-file-select').value;
+    if (!repoId || !filename) return;
+
+    const btn = document.getElementById('hf-download-btn');
+    const progressArea = document.getElementById('hf-pull-progress');
+    const progressFill = document.getElementById('hf-progress-fill');
+    const statusText = document.getElementById('hf-pull-status-text');
+
+    btn.disabled = true;
+    btn.textContent = 'Downloading...';
+    progressArea.style.display = 'block';
+    progressFill.style.width = '0%';
+    progressFill.style.background = '';
+    statusText.textContent = `Connecting to Hugging Face...`;
+
+    try {
+        const res = await fetch('/api/hf/download', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ repo_id: repoId, filename })
+        });
+
+        if (!res.ok) {
+            const err = await res.json();
+            statusText.textContent = `Error: ${err.detail}`;
+            return;
+        }
+
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split('\n');
+            buffer = lines.pop();
+
+            for (const line of lines) {
+                if (!line.startsWith('data: ')) continue;
+                try {
+                    const data = JSON.parse(line.slice(6));
+
+                    if (data.error) {
+                        statusText.textContent = `Error: ${data.error}`;
+                        progressFill.style.background = '#e17055';
+                        return;
+                    }
+
+                    if (data.done) {
+                        progressFill.style.width = '100%';
+                        statusText.textContent = `✓ ${data.filename} downloaded!`;
+                        await loadHFModels();
+                        return;
+                    }
+
+                    if (data.total_bytes && data.bytes_downloaded) {
+                        const pct = data.pct;
+                        progressFill.style.width = `${pct}%`;
+                        const dlGB = (data.bytes_downloaded / 1e9).toFixed(2);
+                        const totalGB = (data.total_bytes / 1e9).toFixed(2);
+                        statusText.textContent = `Downloading ${data.filename} — ${dlGB} / ${totalGB} GB (${pct}%)`;
+                    }
+                } catch (e) { /* skip malformed lines */ }
+            }
+        }
+    } catch (e) {
+        statusText.textContent = `Connection lost: ${e.message}`;
+    } finally {
+        btn.disabled = false;
+        btn.textContent = 'Download';
+    }
+}
+
 // ── Environment ──────────────────────────────────────────────────────────────
 
 const SENSITIVE_KEYS = ['EMAIL_APP_PASSWORD', 'LOCAL_API_KEY'];
@@ -219,6 +364,10 @@ const ENV_CATEGORIES = [
     {
         title: '🤖 Model & Backend',
         keys: ['BACKEND', 'AGENT_MODEL', 'BUILDER_MODEL', 'OLLAMA_BASE_URL', 'LOCAL_BASE_URL', 'LOCAL_API_KEY']
+    },
+    {
+        title: '🤗 Hugging Face Backend',
+        keys: ['HF_TOKEN', 'HF_MODEL_FILE', 'N_GPU_LAYERS', 'N_CTX', 'TEMPERATURE']
     },
     {
         title: '📧 Email Integration',
@@ -351,6 +500,7 @@ window.onload = () => {
     loadConfig();
     loadProfiles();
     loadInstalledModels();
+    loadHFModels();
     loadEnv();
     document.getElementById('chat-input').focus();
 };

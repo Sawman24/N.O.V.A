@@ -3,8 +3,10 @@ import json
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 from dependencies import get_current_username
+from nova_logging import get_logger
 
 router = APIRouter(prefix="/api", tags=["config"])
+logger = get_logger("routers.config")
 
 EDITABLE_ENV = [
     "AGENT_MODEL",
@@ -13,6 +15,12 @@ EDITABLE_ENV = [
     "OLLAMA_BASE_URL",
     "LOCAL_BASE_URL",
     "LOCAL_API_KEY",
+    # Hugging Face backend
+    "HF_TOKEN",
+    "HF_MODEL_FILE",
+    "N_GPU_LAYERS",
+    "N_CTX",
+    "TEMPERATURE",
     "EMAIL_ADDRESS",
     "EMAIL_APP_PASSWORD",
     "IMAP_SERVER",
@@ -84,7 +92,7 @@ async def save_env(req: EnvRequest, username: str = Depends(get_current_username
         with open(".env", "w") as f:
             f.write("\n".join(lines) + "\n")
     except Exception as e:
-        print(f"[Nova] Could not write .env: {e}")
+        logger.error(f"Could not write .env: {e}")
 
     return {"status": "success"}
 

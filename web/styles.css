@@ -367,3 +367,46 @@ button:disabled { opacity: 0.45; cursor: not-allowed; }
     z-index: 10;
 }
 
+
+/* -- Hugging Face Section -- */
+.hf-section {
+    margin-top: 1.5rem;
+    padding: 1.25rem;
+    border: 1px solid rgba(255, 197, 61, 0.25);
+    border-radius: 10px;
+    background: rgba(255, 197, 61, 0.04);
+}
+
+.hf-section-title {
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: #ffc53d;
+    margin: 0 0 0.5rem 0;
+}
+
+.hf-section .muted {
+    font-size: 0.82rem;
+    color: var(--muted);
+    margin: 0 0 1rem 0;
+}
+
+.hf-section select {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--glass-border);
+    border-radius: 8px;
+    color: var(--text);
+    padding: 0.55rem 0.75rem;
+    font-size: 0.9rem;
+    font-family: 'Inter', sans-serif;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+.hf-section select:focus {
+    border-color: #ffc53d;
+}
+
+.hf-section select option {
+    background: #1a1d21;
+    color: var(--text);
+}
