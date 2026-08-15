@@ -25,9 +25,10 @@ RUN mkdir -p models
 # Expose the FastAPI port
 EXPOSE 8000
 
-# Health check — optimized with the '-S' flag to skip loading site-packages,
-# making it extremely lightweight and fast without needing curl.
-HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
-    CMD python -S -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health', timeout=5)" || exit 1
+# Health check — optimized to check if the socket port 8000 is open and listening.
+# This succeeds instantly even if the FastAPI event loop is temporarily blocked
+# by heavy CPU inference (generating tokens).
+HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
+    CMD python -S -c "import socket; socket.create_connection(('localhost', 8000), timeout=2)" || exit 1
 
 CMD ["uvicorn", "api:app", "--host", "0.0.0.0", "--port", "8000"]
