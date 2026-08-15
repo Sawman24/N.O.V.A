@@ -234,14 +234,28 @@ async function loadHFModels() {
     }
 }
 
-function selectHFModel(filename) {
-    // Populate HF_MODEL_FILE env field if visible, otherwise show a quick tip
-    const envField = document.getElementById('env_HF_MODEL_FILE');
-    if (envField) {
-        envField.value = `models/${filename}`;
-        envField.closest('.form-group').scrollIntoView({ behavior: 'smooth' });
-    } else {
-        alert(`To activate this model:\n1. Set BACKEND=huggingface in the Environment tab.\n2. Set HF_MODEL_FILE=models/${filename}\n3. Restart Nova.`);
+async function selectHFModel(filename) {
+    const vars = {
+        BACKEND: 'huggingface',
+        HF_MODEL_FILE: `models/${filename}`
+    };
+
+    try {
+        const res = await fetch('/api/env', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ vars })
+        });
+
+        if (res.ok) {
+            alert(`✓ Hugging Face model selected: ${filename}\n\nBackend has been automatically switched to 'huggingface' and the model file set to 'models/${filename}'.\n\nPlease restart the container to apply the changes:\n'docker-compose restart nova'`);
+            loadBackendInfo();
+            loadEnv();
+        } else {
+            alert('Failed to select the Hugging Face model.');
+        }
+    } catch (e) {
+        alert(`Error saving model selection: ${e.message}`);
     }
 }
 
