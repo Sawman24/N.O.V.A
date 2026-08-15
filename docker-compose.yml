@@ -29,20 +29,25 @@ services:
     container_name: nova
     ports:
       - "${PORT:-8080}:8000"
-    env_file:
-      - .env
     volumes:
       - nova_profiles:/app/profiles
       - nova_tools:/app/tools
       - nova_models:/app/models
-      - ./.env:/app/.env
     environment:
-      - OLLAMA_BASE_URL=http://ollama:11434/v1
       - BACKEND=${BACKEND:-ollama}
+      - OLLAMA_BASE_URL=${OLLAMA_BASE_URL:-http://ollama:11434/v1}
+      - WEB_USERNAME=${WEB_USERNAME:-admin}
+      - WEB_PASSWORD=${WEB_PASSWORD:-changeme}
       - HF_TOKEN=${HF_TOKEN:-}
       - HF_MODEL_FILE=${HF_MODEL_FILE:-}
       - N_GPU_LAYERS=${N_GPU_LAYERS:-0}
       - N_CTX=${N_CTX:-4096}
+      - TEMPERATURE=${TEMPERATURE:-0.7}
+      - EMAIL_ADDRESS=${EMAIL_ADDRESS:-}
+      - EMAIL_APP_PASSWORD=${EMAIL_APP_PASSWORD:-}
+      - IMAP_SERVER=${IMAP_SERVER:-imap.gmail.com}
+      - SMTP_SERVER=${SMTP_SERVER:-smtp.gmail.com}
+      - HEADLESS_MODE=${HEADLESS_MODE:-true}
     depends_on:
       ollama:
         condition: service_healthy
