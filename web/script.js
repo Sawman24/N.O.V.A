@@ -67,21 +67,74 @@ async function sendMessage() {
     btn.disabled = true;
     btn.textContent = '…';
 
+    // Create a placeholder message container for the streaming AI response
+    const box = document.getElementById('chat-box');
+    const div = document.createElement('div');
+    div.className = 'chat-msg msg-ai';
+    div.innerHTML = `<strong>Nova</strong><br><span class="stream-content">…</span>`;
+    box.appendChild(div);
+    box.scrollTop = box.scrollHeight;
+    
+    const contentSpan = div.querySelector('.stream-content');
+
     try {
-        const res = await fetch('/api/chat', {
+        const res = await fetch('/api/chat/stream', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ message, session_id: getSessionId() })
         });
-        const data = await res.json();
-        appendMessage('agent', res.ok ? data.response : `Error: ${data.detail}`);
-    } catch (e) {
-        appendMessage('agent', 'Failed to reach Nova. Is the server running?');
-    }
 
-    btn.disabled = false;
-    btn.textContent = 'Send';
-    document.getElementById('chat-input').focus();
+        if (!res.ok) {
+            const err = await res.json();
+            contentSpan.textContent = `Error: ${err.detail || 'Could not connect'}`;
+            return;
+        }
+
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+        let fullResponse = '';
+
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split('\n');
+            buffer = lines.pop(); // hold any incomplete line
+
+            for (const line of lines) {
+                if (!line.startsWith('data: ')) continue;
+                try {
+                    const data = JSON.parse(line.slice(6));
+
+                    if (data.type === 'token') {
+                        fullResponse += data.content;
+                        contentSpan.innerHTML = escapeHtml(fullResponse);
+                        box.scrollTop = box.scrollHeight;
+                    } else if (data.type === 'error') {
+                        contentSpan.innerHTML = `<span style="color: #ff7675;">Error: ${escapeHtml(data.content)}</span>`;
+                        box.scrollTop = box.scrollHeight;
+                        return;
+                    } else if (data.type === 'tool_call') {
+                        // Display tool call indicator
+                        const tcDiv = document.createElement('div');
+                        tcDiv.className = 'muted-sm';
+                        tcDiv.style.margin = '4px 0';
+                        tcDiv.textContent = `🛠️ Calling: ${data.name}...`;
+                        div.insertBefore(tcDiv, contentSpan);
+                        box.scrollTop = box.scrollHeight;
+                    }
+                } catch (e) { /* skip partial lines */ }
+            }
+        }
+    } catch (e) {
+        contentSpan.textContent = 'Failed to reach Nova. Is the server running?';
+    } finally {
+        btn.disabled = false;
+        btn.textContent = 'Send';
+        document.getElementById('chat-input').focus();
+    }
 }
 
 // ── Config ────────────────────────────────────────────────────────────────────
