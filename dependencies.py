@@ -13,8 +13,10 @@ load_dotenv()
 
 logger = get_logger("dependencies")
 
-WEB_USERNAME = os.getenv("WEB_USERNAME", "admin")
-WEB_PASSWORD = os.getenv("WEB_PASSWORD", "changeme")
+from backends.base import get_config_val
+
+WEB_USERNAME = get_config_val("WEB_USERNAME", "admin")
+WEB_PASSWORD = get_config_val("WEB_PASSWORD", "changeme")
 security = HTTPBasic(auto_error=False)
 
 # Session token management

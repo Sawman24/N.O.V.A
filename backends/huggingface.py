@@ -1,6 +1,6 @@
 import os
 from typing import Generator
-from .base import BaseBackend
+from .base import BaseBackend, get_config_val
 from nova_logging import get_logger
 
 logger = get_logger("backends.huggingface")
@@ -12,11 +12,6 @@ class HuggingFaceBackend(BaseBackend):
 
     Set HF_MODEL_FILE to the path of a .gguf file inside the models/ directory.
     GPU offloading is enabled by setting N_GPU_LAYERS env var (default: 0 = CPU only).
-
-    Example .env:
-        BACKEND=huggingface
-        HF_MODEL_FILE=models/Qwen2.5-7B-Instruct-Q4_K_M.gguf
-        N_GPU_LAYERS=35   # optional — set to a number > 0 for GPU offloading
     """
 
     NAME = "huggingface"
@@ -30,15 +25,15 @@ class HuggingFaceBackend(BaseBackend):
                 "Run: pip install llama-cpp-python"
             )
 
-        model_path = os.getenv("HF_MODEL_FILE", "")
+        model_path = get_config_val("HF_MODEL_FILE", "")
         if not model_path or not os.path.exists(model_path):
             raise RuntimeError(
                 f"HF_MODEL_FILE not set or file not found: '{model_path}'. "
                 "Download a model first via the Settings → Hugging Face panel."
             )
 
-        n_gpu_layers = int(os.getenv("N_GPU_LAYERS", "0"))
-        n_ctx = int(os.getenv("N_CTX", "4096"))
+        n_gpu_layers = get_config_val("N_GPU_LAYERS", 0)
+        n_ctx = get_config_val("N_CTX", 4096)
 
         logger.info(
             f"Backend: HuggingFace — loading {model_path} "
@@ -72,7 +67,7 @@ class HuggingFaceBackend(BaseBackend):
         """Non-streaming chat via llama_cpp.Llama.create_chat_completion."""
         kwargs = dict(
             messages=messages,
-            temperature=float(os.getenv("TEMPERATURE", "0.7")),
+            temperature=get_config_val("TEMPERATURE", 0.7),
         )
         tool_list = self._strip_tools(tools)
         if tool_list:
@@ -88,7 +83,7 @@ class HuggingFaceBackend(BaseBackend):
         """Streaming chat — yields OpenAI-compatible chunk dicts wrapped in _LlamaChunk."""
         kwargs = dict(
             messages=messages,
-            temperature=float(os.getenv("TEMPERATURE", "0.7")),
+            temperature=get_config_val("TEMPERATURE", 0.7),
             stream=True,
         )
         tool_list = self._strip_tools(tools)

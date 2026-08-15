@@ -51,8 +51,12 @@ async def setup(req: SetupRequest, response: Response):
                         k, v = line.split("=", 1)
                         existing[k] = v
 
-        existing["WEB_USERNAME"] = req.username.strip()
-        existing["WEB_PASSWORD"] = req.password
+        # Save to persistent volume profiles/config.json
+        from routers.config import save_persistent_config
+        save_persistent_config({
+            "WEB_USERNAME": req.username.strip(),
+            "WEB_PASSWORD": req.password,
+        })
 
         lines = [f"{k}={v}" for k, v in existing.items()]
         with open(".env", "w") as f:
@@ -60,8 +64,8 @@ async def setup(req: SetupRequest, response: Response):
 
         logger.info(f"Setup completed — credentials updated for user '{req.username.strip()}'.")
     except Exception as e:
-        logger.error(f"Could not write .env during setup: {e}")
-        return {"status": "error", "message": f"Credentials set in memory but could not persist to .env: {e}"}
+        logger.error(f"Could not write .env or profiles/config.json during setup: {e}")
+        return {"status": "error", "message": f"Credentials set in memory but could not persist: {e}"}
 
     # Issue session cookie so they don't need to log in again immediately
     token = create_session_token(req.username.strip())

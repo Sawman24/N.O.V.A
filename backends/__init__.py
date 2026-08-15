@@ -1,5 +1,5 @@
 import os
-from .base import BaseBackend
+from .base import BaseBackend, get_config_val
 from nova_logging import get_logger
 
 logger = get_logger("backends")
@@ -31,11 +31,11 @@ class ErrorBackend(BaseBackend):
 
 def get_backend() -> BaseBackend:
     """
-    Factory function — reads BACKEND env var and returns the right adapter.
+    Factory function — reads config/env BACKEND and returns the right adapter.
     Supported values: 'ollama' (default), 'local', 'huggingface'
     """
     try:
-        backend_type = os.getenv("BACKEND", "ollama").lower().strip()
+        backend_type = get_config_val("BACKEND", "ollama").lower().strip()
 
         if backend_type == "ollama":
             from .ollama import OllamaBackend
